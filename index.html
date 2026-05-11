@@ -4,18 +4,318 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบเช็คงาน QR Code</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #9e9e9e;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+    }
+
+    #status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      display: none;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .info {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+  </style>
 </head>
 <body>
-  <h1>ระบบเช็คงาน QR Code</h1>
+  <div class="container">
+    <h1>ระบบเช็คงาน QR Code</h1>
 
-  <p>หากคุณเห็นหน้านี้ แสดงว่า GitHub Pages ทำงานถูกต้องแล้ว</p>
+    <label>วิชา</label>
+    <select id="subject">
+      <option value="">กำลังโหลด...</option>
+    </select>
+
+    <label>งาน</label>
+    <select id="assignment">
+      <option value="">เลือกวิชาก่อน</option>
+    </select>
+
+    <label>คะแนน</label>
+    <input type="number" id="score" value="5">
+
+    <button id="startBtn">เริ่มสแกน</button>
+
+    <div id="reader" style="display:none;"></div>
+
+    <div id="status"></div>
+
+    <p><strong>บันทึกแล้ว:</strong> <span id="count">0</span> คน</p>
+  </div>
 
   <script>
-    // ใส่ URL ของ Google Apps Script Web App ของคุณที่นี่
+    /*************************************************
+     * ใส่ URL Web App ของ Google Apps Script ที่นี่
+     *************************************************/
     const WEB_APP_URL =
-      'https://script.google.com/macros/s/ใส่_URL_ของคุณ/exec';
+      'https://script.google.com/macros/s/AKfycbxs7I1MwO-4MzeIE6ZgFsIgRQrNHlD8ZVtUI1erZ1oQwrwv3jhYFkC_mmlnTpE1iVM5VQ/exec';
 
-    console.log('WEB_APP_URL =', WEB_APP_URL);
+    let assignments = [];
+    let html5QrCode = null;
+    let processing = false;
+    let successCount = 0;
+
+    /*************************************************
+     * เรียก API
+     *************************************************/
+    async function callApi(params) {
+      const url = WEB_APP_URL + '?' + new URLSearchParams(params);
+      const response = await fetch(url);
+      return await response.json();
+    }
+
+    /*************************************************
+     * แสดงสถานะ
+     *************************************************/
+    function showStatus(message, type = 'info') {
+      const box = document.getElementById('status');
+      box.style.display = 'block';
+      box.className = type;
+      box.textContent = message;
+    }
+
+    /*************************************************
+     * โหลดรายชื่อวิชา
+     *************************************************/
+    async function loadSubjects() {
+      const subjectSelect = document.getElementById('subject');
+
+      try {
+        const subjects = await callApi({ action: 'getSubjects' });
+
+        subjectSelect.innerHTML =
+          '<option value="">-- เลือกวิชา --</option>';
+
+        subjects.forEach(subject => {
+          const option = document.createElement('option');
+          option.value = subject;
+          option.textContent = subject;
+          subjectSelect.appendChild(option);
+        });
+
+      } catch (error) {
+        subjectSelect.innerHTML =
+          '<option value="">โหลดไม่สำเร็จ</option>';
+        showStatus('ไม่สามารถโหลดรายชื่อวิชาได้', 'error');
+      }
+    }
+
+    /*************************************************
+     * โหลดงาน
+     *************************************************/
+    async function loadAssignments() {
+      const subject = document.getElementById('subject').value;
+      const assignmentSelect =
+        document.getElementById('assignment');
+
+      if (!subject) {
+        assignmentSelect.innerHTML =
+          '<option value="">เลือกวิชาก่อน</option>';
+        return;
+      }
+
+      try {
+        assignments = await callApi({
+          action: 'getAssignments',
+          subject: subject
+        });
+
+        assignmentSelect.innerHTML =
+          '<option value="">-- เลือกงาน --</option>';
+
+        assignments.forEach((item, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = item.name;
+          assignmentSelect.appendChild(option);
+        });
+
+      } catch (error) {
+        assignmentSelect.innerHTML =
+          '<option value="">โหลดไม่สำเร็จ</option>';
+        showStatus('ไม่สามารถโหลดรายการงานได้', 'error');
+      }
+    }
+
+    /*************************************************
+     * เริ่มสแกน
+     *************************************************/
+    async function startScan() {
+      const subject =
+        document.getElementById('subject').value;
+      const assignmentIndex =
+        document.getElementById('assignment').value;
+      const score =
+        Number(document.getElementById('score').value);
+
+      if (!subject) {
+        alert('กรุณาเลือกวิชา');
+        return;
+      }
+
+      if (assignmentIndex === '') {
+        alert('กรุณาเลือกงาน');
+        return;
+      }
+
+      const assignment = assignments[assignmentIndex];
+
+      document.getElementById('reader').style.display =
+        'block';
+
+      showStatus('กำลังเปิดกล้อง...', 'info');
+
+      try {
+        html5QrCode = new Html5Qrcode('reader');
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          async (decodedText) => {
+            if (processing) return;
+            processing = true;
+
+            try {
+              const result = await callApi({
+                action: 'submitScore',
+                subject: subject,
+                col: assignment.col,
+                studentId: decodedText.trim(),
+                score: score,
+                overwrite: 'false'
+              });
+
+              if (result.status === 'success') {
+                successCount++;
+                document.getElementById('count').textContent =
+                  successCount;
+
+                showStatus(
+                  'บันทึกสำเร็จ: ' + decodedText,
+                  'success'
+                );
+
+                if (navigator.vibrate) {
+                  navigator.vibrate(200);
+                }
+              } else {
+                showStatus(
+                  result.message || 'เกิดข้อผิดพลาด',
+                  'error'
+                );
+              }
+
+            } catch (error) {
+              showStatus(
+                'ไม่สามารถบันทึกข้อมูลได้',
+                'error'
+              );
+            }
+
+            setTimeout(() => {
+              processing = false;
+            }, 1000);
+          }
+        );
+
+        document.getElementById('startBtn').style.display =
+          'none';
+
+        showStatus('พร้อมสแกน QR Code', 'success');
+
+      } catch (error) {
+        showStatus(
+          'ไม่สามารถเปิดกล้องได้: ' + error.message,
+          'error'
+        );
+      }
+    }
+
+    /*************************************************
+     * Event
+     *************************************************/
+    document
+      .getElementById('subject')
+      .addEventListener('change', loadAssignments);
+
+    document
+      .getElementById('startBtn')
+      .addEventListener('click', startScan);
+
+    /*************************************************
+     * เริ่มต้น
+     *************************************************/
+    loadSubjects();
   </script>
 </body>
 </html>
