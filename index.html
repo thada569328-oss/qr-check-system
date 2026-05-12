@@ -1,729 +1,298 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเช็คงานด้วย QR Code</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Scanner</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-  <!-- html5-qrcode -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#f3f4f6;
+}
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
 
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      background: #f5f7fb;
-      color: #1f2937;
-    }
+.card{
+  background:white;
+  border-radius:20px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+h1,h2{
+  margin-top:0;
+}
 
-    .card {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      padding: 24px;
-      margin-bottom: 20px;
-    }
+select,input,button{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #d1d5db;
+  margin-top:10px;
+  font-size:16px;
+}
 
-    h1, h2, h3 {
-      margin-top: 0;
-    }
+button{
+  border:none;
+  cursor:pointer;
+  background:#2563eb;
+  color:white;
+  font-weight:bold;
+}
 
-    h1 {
-      font-size: 28px;
-      text-align: center;
-      margin-bottom: 24px;
-    }
+#reader{
+  width:100%;
+  overflow:hidden;
+  border-radius:20px;
+  background:black;
+}
 
-    .subtitle {
-      text-align: center;
-      color: #6b7280;
-      margin-top: -10px;
-      margin-bottom: 24px;
-    }
+.hidden{
+  display:none;
+}
 
-    label {
-      display: block;
-      margin-top: 14px;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:14px 20px;
+  border-radius:14px;
+  color:white;
+  font-weight:bold;
+  z-index:9999;
+  display:none;
+}
 
-    select,
-    input,
-    button {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 1px solid #d1d5db;
-      outline: none;
-    }
+.success{
+  background:#10b981;
+}
 
-    select:focus,
-    input:focus {
-      border-color: #3b82f6;
-    }
+.error{
+  background:#ef4444;
+}
 
-    button {
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.2s;
-    }
-
-    button:hover {
-      opacity: 0.95;
-    }
-
-    .btn-primary {
-      background: #2563eb;
-      color: #ffffff;
-    }
-
-    .btn-secondary {
-      background: #10b981;
-      color: #ffffff;
-    }
-
-    .btn-danger {
-      background: #ef4444;
-      color: #ffffff;
-    }
-
-    .btn-gray {
-      background: #6b7280;
-      color: #ffffff;
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .row > * {
-      flex: 1;
-      min-width: 160px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .center {
-      text-align: center;
-    }
-
-    .counter {
-      font-size: 24px;
-      font-weight: 700;
-      text-align: center;
-      margin: 12px 0 20px;
-    }
-
-    #reader {
-      width: 100%;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #000;
-      min-height: 300px;
-    }
-
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .top-bar .title {
-      flex: 1;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 24px;
-      transform: translateX(-50%);
-      min-width: 320px;
-      max-width: 90%;
-      padding: 16px 20px;
-      border-radius: 14px;
-      color: #ffffff;
-      font-weight: 600;
-      text-align: center;
-      z-index: 9999;
-      opacity: 0;
-      pointer-events: none;
-      transition: 0.3s;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    }
-
-    .toast.show {
-      opacity: 1;
-    }
-
-    .toast.success {
-      background: rgba(16, 185, 129, 0.92);
-    }
-
-    .toast.error {
-      background: rgba(239, 68, 68, 0.92);
-    }
-
-    .toast.info {
-      background: rgba(59, 130, 246, 0.92);
-    }
-
-    .history-item {
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 14px;
-      margin-top: 12px;
-    }
-
-    .history-meta {
-      color: #6b7280;
-      font-size: 14px;
-      margin-top: 4px;
-      margin-bottom: 8px;
-    }
-
-    .student-list {
-      margin-top: 8px;
-      padding-left: 20px;
-    }
-
-    .link-btn {
-      display: inline-block;
-      text-decoration: none;
-      background: #10b981;
-      color: #ffffff;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-weight: 600;
-      text-align: center;
-      width: 100%;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 10000;
-    }
-
-    .modal-box {
-      background: #ffffff;
-      border-radius: 20px;
-      padding: 24px;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-    }
-
-    .modal-box h3 {
-      margin-top: 0;
-      text-align: center;
-      color: #dc2626;
-    }
-
-    @media (max-width: 640px) {
-      .container {
-        padding: 12px;
-      }
-
-      .card {
-        padding: 18px;
-        border-radius: 16px;
-      }
-
-      h1 {
-        font-size: 24px;
-      }
-
-      .top-bar .title {
-        font-size: 18px;
-      }
-    }
-  </style>
+.history-item{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:12px;
+  margin-top:12px;
+}
+</style>
 </head>
 <body>
-    <div class="container">
 
-    <!-- หน้าแรก -->
-    <div id="homePage">
-      <div class="card">
-        <h1>ระบบเช็คงานด้วย QR Code</h1>
-        <div class="subtitle">เลือกวิชา งาน และคะแนนก่อนเริ่มสแกน</div>
+<div class="container">
 
-        <label>เลือกวิชา</label>
-        <select id="subjectSelect">
-          <option value="">กำลังโหลด...</option>
-        </select>
+<div id="homePage">
+  <div class="card">
+    <h1>ระบบเช็คงาน QR</h1>
 
-        <label>เลือกงาน</label>
-        <select id="assignmentSelect">
-          <option value="">กรุณาเลือกวิชาก่อน</option>
-        </select>
+    <label>วิชา</label>
+    <select id="subject"></select>
 
-        <label>กำหนดคะแนน</label>
-        <input
-          type="number"
-          id="scoreInput"
-          min="0"
-          step="0.01"
-          placeholder="เช่น 5"
-        />
+    <label>งาน</label>
+    <select id="assignment"></select>
 
-        <div class="row" style="margin-top:16px;">
-          <a
-            id="sheetLink"
-            href="#"
-            target="_blank"
-            class="link-btn"
-          >
-            เปิด Google Sheet
-          </a>
-        </div>
+    <label>คะแนน</label>
+    <input type="number" id="score" placeholder="คะแนน">
 
-        <div class="row" style="margin-top:16px;">
-          <button
-            class="btn-primary"
-            onclick="startSession()"
-          >
-            เริ่มสแกน
-          </button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>ประวัติการสแกน</h2>
-        <div id="historyList">กำลังโหลด...</div>
-      </div>
-    </div>
-
-    <!-- หน้าสแกน -->
-    <div id="scannerPage" class="hidden">
-      <div class="card">
-        <div class="top-bar">
-          <button
-            class="btn-gray"
-            style="width:auto;padding:10px 16px;"
-            onclick="goBack()"
-          >
-            ← ย้อนกลับ
-          </button>
-
-          <div class="title">
-            บันทึกแล้ว <span id="scanCount">0</span> คน
-          </div>
-
-          <a
-            id="sheetLinkScanner"
-            href="#"
-            target="_blank"
-            class="btn-secondary"
-            style="
-              width:auto;
-              padding:10px 16px;
-              text-decoration:none;
-              color:#fff;
-            "
-          >
-            ดูชีต
-          </a>
-        </div>
-
-        <div id="reader"></div>
-
-        <div class="counter">
-          <div id="currentInfo">
-            พร้อมสแกน QR Code
-          </div>
-        </div>
-      </div>
-    </div>
+    <button onclick="startScan()">เริ่มสแกน</button>
   </div>
 
-  <!-- Toast -->
-  <div id="toast" class="toast"></div>
-
-  <!-- Modal แจ้งเตือนสแกนซ้ำ -->
-  <div id="duplicateModal" class="modal hidden">
-    <div class="modal-box">
-      <h3>พบคะแนนเดิม</h3>
-
-      <p id="duplicateText" class="center">
-        นักเรียนคนนี้มีคะแนนอยู่แล้ว
-      </p>
-
-      <div class="row" style="margin-top:20px;">
-        <button
-          class="btn-primary"
-          onclick="overwriteDuplicate()"
-        >
-          เขียนทับคะแนนใหม่
-        </button>
-
-        <button
-          class="btn-danger"
-          onclick="closeDuplicateModal()"
-        >
-          ยกเลิก
-        </button>
-      </div>
-    </div>
+  <div class="card">
+    <h2>ประวัติ</h2>
+    <div id="history"></div>
   </div>
+</div>
 
-  <!-- เสียงแจ้งเตือน -->
-  <audio id="errorSound">
-    <source
-      src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
-      type="audio/ogg"
-    />
-  </audio>
+<div id="scannerPage" class="hidden">
+  <div class="card">
+    <button onclick="backHome()">ย้อนกลับ</button>
 
-  <script>
-    /************************************************
-     * ตั้งค่า
-     ************************************************/
-    const WEB_APP_URL =
-      'https://script.google.com/macros/s/AKfycbxs7I1MwO-4MzeIE6ZgFsIgRQrNHlD8ZVtUI1erZ1oQwrwv3jhYFkC_mmlnTpE1iVM5VQ/exec';
+    <h2>บันทึกแล้ว <span id="count">0</span> คน</h2>
 
-    /************************************************
-     * ตัวแปรหลัก
-     ************************************************/
-    let html5QrCode = null;
-    let currentConfig = null;
-    let currentSession = null;
-    let pendingDuplicate = null;
-    let lastScanText = '';
-    let lastScanTime = 0;
-        /************************************************
-     * ฟังก์ชันพื้นฐาน
-     ************************************************/
-    async function apiGet(params) {
-      const url = WEB_APP_URL + '?' + new URLSearchParams(params);
-      const response = await fetch(url);
-      return await response.json();
-    }
+    <div id="reader"></div>
+  </div>
+</div>
 
-    async function apiPost(data) {
-      const response = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      return await response.json();
-    }
+</div>
 
-    function $(id) {
-      return document.getElementById(id);
-    }
+<div id="toast" class="toast"></div>
 
-    function showToast(message, type = 'info') {
-      const toast = $('toast');
-      toast.className = 'toast ' + type + ' show';
-      toast.textContent = message;
+<script>
+const WEB_APP_URL = 'ใส่ Web App URL';
 
-      clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2500);
-    }
+let qr = null;
+let total = 0;
+let current = null;
 
-    function vibrate() {
-      if (navigator.vibrate) {
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.className='toast '+type;
+  t.innerText=msg;
+  t.style.display='block';
+
+  setTimeout(()=>{
+    t.style.display='none';
+  },2000);
+}
+
+async function api(params){
+  const url=WEB_APP_URL+'?'+new URLSearchParams(params);
+  const res=await fetch(url);
+  return await res.json();
+}
+
+async function loadSubjects(){
+  const data=await api({action:'getSubjects'});
+
+  const s=document.getElementById('subject');
+
+  s.innerHTML='<option value="">เลือกวิชา</option>';
+
+  data.forEach(item=>{
+    s.innerHTML+=`<option value="${item}">${item}</option>`;
+  });
+}
+
+async function loadAssignments(){
+  const subject=document.getElementById('subject').value;
+
+  const data=await api({
+    action:'getAssignments',
+    subject:subject
+  });
+
+  const a=document.getElementById('assignment');
+
+  a.innerHTML='';
+
+  data.forEach(item=>{
+    a.innerHTML+=`<option value='${JSON.stringify(item)}'>${item.name}</option>`;
+  });
+}
+
+async function startScan(){
+  const subject=document.getElementById('subject').value;
+  const assignment=document.getElementById('assignment').value;
+  const score=document.getElementById('score').value;
+
+  if(!subject||!assignment||score===''){
+    toast('กรอกข้อมูลให้ครบ','error');
+    return;
+  }
+
+  current={
+    subject,
+    assignment:JSON.parse(assignment),
+    score
+  };
+
+  document.getElementById('homePage').classList.add('hidden');
+  document.getElementById('scannerPage').classList.remove('hidden');
+
+  qr=new Html5Qrcode('reader');
+
+  try{
+    await qr.start(
+      {facingMode:'environment'},
+      {fps:10,qrbox:250},
+      onScan
+    );
+  }catch(err){
+    toast('เปิดกล้องไม่ได้','error');
+  }
+}
+
+async function onScan(text){
+  try{
+    const result=await api({
+      action:'submitScore',
+      subject:current.subject,
+      col:current.assignment.col,
+      studentId:text,
+      score:current.score,
+      overwrite:false
+    });
+
+    if(result.status==='success'){
+      total++;
+      document.getElementById('count').innerText=total;
+      toast('บันทึกสำเร็จ','success');
+
+      if(navigator.vibrate){
         navigator.vibrate(200);
       }
+
+    }else if(result.status==='duplicate'){
+      toast('มีคะแนนแล้ว','error');
+
+    }else{
+      toast(result.message,'error');
     }
 
-    function playErrorSound() {
-      try {
-        $('errorSound').currentTime = 0;
-        $('errorSound').play();
-      } catch (e) {}
+  }catch(err){
+    toast('เชื่อมต่อไม่ได้','error');
+  }
+}
+
+async function backHome(){
+  if(qr){
+    try{
+      await qr.stop();
+      await qr.clear();
+    }catch(e){}
+  }
+
+  document.getElementById('scannerPage').classList.add('hidden');
+  document.getElementById('homePage').classList.remove('hidden');
+}
+
+async function loadHistory(){
+  try{
+    const data=await api({action:'getHistory'});
+
+    const h=document.getElementById('history');
+
+    if(!data.length){
+      h.innerHTML='ยังไม่มีประวัติ';
+      return;
     }
 
-    function formatDate(dateValue) {
-      if (!dateValue) return '-';
+    h.innerHTML='';
 
-      const date = new Date(dateValue);
-      return date.toLocaleString('th-TH');
-    }
+    data.forEach(item=>{
+      h.innerHTML+=`
+      <div class="history-item">
+        <b>${item.subject}</b><br>
+        งาน: ${item.assignment}<br>
+        คะแนน: ${item.score}<br>
+        จำนวน: ${item.count}
+      </div>
+      `;
+    });
 
-    /************************************************
-     * โหลดข้อมูลเริ่มต้น
-     ************************************************/
-    async function init() {
-      if (WEB_APP_URL.includes('ใส่_WEB_APP_URL')) {
-        alert('กรุณาใส่ WEB_APP_URL ก่อนใช้งาน');
-        return;
-      }
+  }catch(err){
+    document.getElementById('history').innerHTML='โหลดประวัติไม่ได้';
+  }
+}
 
-      await loadSubjects();
-      await loadSpreadsheetLink();
-      await loadHistory();
-    }
+document
+.getElementById('subject')
+.addEventListener('change',loadAssignments);
 
-    async function loadSubjects() {
-      try {
-        const subjects = await apiGet({
-          action: 'getSubjects'
-        });
+loadSubjects();
+loadHistory();
+</script>
 
-        const select = $('subjectSelect');
-        select.innerHTML =
-          '<option value="">-- เลือกวิชา --</option>';
-
-        subjects.forEach(subject => {
-          const option = document.createElement('option');
-          option.value = subject;
-          option.textContent = subject;
-          select.appendChild(option);
-        });
-      } catch (error) {
-        alert('ไม่สามารถโหลดรายชื่อวิชาได้');
-      }
-    }
-
-    async function loadAssignments() {
-      const subject = $('subjectSelect').value;
-      const select = $('assignmentSelect');
-
-      if (!subject) {
-        select.innerHTML =
-          '<option value="">กรุณาเลือกวิชาก่อน</option>';
-        return;
-      }
-
-      try {
-        const assignments = await apiGet({
-          action: 'getAssignments',
-          subject: subject
-        });
-
-        select.innerHTML =
-          '<option value="">-- เลือกงาน --</option>';
-
-        assignments.forEach(item => {
-          const option = document.createElement('option');
-          option.value = JSON.stringify(item);
-          option.textContent = item.name;
-          select.appendChild(option);
-        });
-      } catch (error) {
-        alert('ไม่สามารถโหลดรายการงานได้');
-      }
-    }
-
-    async function loadSpreadsheetLink() {
-      try {
-        const result = await apiGet({
-          action: 'getSpreadsheetUrl'
-        });
-
-        $('sheetLink').href = result.url;
-        $('sheetLinkScanner').href = result.url;
-      } catch (error) {}
-    }
-
-    /************************************************
-     * เริ่ม Session
-     ************************************************/
-    async function startSession() {
-      const subject = $('subjectSelect').value;
-      const assignmentValue =
-        $('assignmentSelect').value;
-      const score = $('scoreInput').value;
-
-      if (!subject) {
-        showToast('กรุณาเลือกวิชา', 'error');
-        return;
-      }
-
-      if (!assignmentValue) {
-        showToast('กรุณาเลือกงาน', 'error');
-        return;
-      }
-
-      if (score === '') {
-        showToast('กรุณากำหนดคะแนน', 'error');
-        return;
-      }
-
-      const assignment = JSON.parse(assignmentValue);
-
-      currentConfig = {
-        subject: subject,
-        assignment: assignment,
-        score: Number(score)
-      };
-
-      currentSession = {
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        subject: subject,
-        assignment: assignment.name,
-        score: Number(score),
-        count: 0,
-        students: []
-      };
-
-      $('scanCount').textContent = '0';
-      $('currentInfo').textContent = 'พร้อมสแกน QR Code';
-
-      $('homePage').classList.add('hidden');
-      $('scannerPage').classList.remove('hidden');
-
-      await startScanner();
-    }
-
-    /************************************************
-     * เริ่มกล้อง
-     ************************************************/
-    async function startScanner() {
-      html5QrCode = new Html5Qrcode('reader');
-
-      try {
-        await html5QrCode.start(
-          { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: 250
-          },
-          onScanSuccess
-        );
-      } catch (error) {
-        showToast(
-          'ไม่สามารถเปิดกล้องได้',
-          'error'
-        );
-      }
-    }
-        /************************************************
-     * โหลดประวัติ
-     ************************************************/
-    async function loadHistory() {
-      const container = $('historyList');
-      container.innerHTML = 'กำลังโหลด...';
-
-      try {
-        const history = await apiGet({
-          action: 'getHistory'
-        });
-
-        if (!history.length) {
-          container.innerHTML = 'ยังไม่มีประวัติ';
-          return;
-        }
-
-        container.innerHTML = '';
-
-        history.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'history-item';
-
-          const studentsHtml = (item.students || [])
-            .map(student =>
-              `<li>${student.studentId} - ${student.name}</li>`
-            )
-            .join('');
-
-          div.innerHTML = `
-            <strong>${item.subject}</strong><br>
-            งาน: ${item.assignment}<br>
-            คะแนน: ${item.score}<br>
-            จำนวนที่บันทึก: ${item.count} คน
-
-            <div class="history-meta">
-              เริ่ม: ${formatDate(item.startedAt)}<br>
-              สิ้นสุด: ${formatDate(item.endedAt)}
-            </div>
-
-            ${
-              studentsHtml
-                ? `<ul class="student-list">${studentsHtml}</ul>`
-                : ''
-            }
-
-            <div style="margin-top:12px;">
-              <button
-                class="btn-danger"
-                onclick="deleteHistory(${item.row})"
-              >
-                ลบประวัติ
-              </button>
-            </div>
-          `;
-
-          container.appendChild(div);
-        });
-
-      } catch (error) {
-        container.innerHTML = 'ไม่สามารถโหลดประวัติได้';
-      }
-    }
-
-    /************************************************
-     * ลบประวัติ
-     ************************************************/
-    async function deleteHistory(row) {
-      const confirmed = confirm(
-        'ต้องการลบประวัตินี้หรือไม่?'
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        const result = await apiGet({
-          action: 'deleteHistory',
-          row: row
-        });
-
-        if (result.status === 'success') {
-          showToast('ลบประวัติเรียบร้อย', 'success');
-          await loadHistory();
-        } else {
-          showToast(result.message, 'error');
-        }
-      } catch (error) {
-        showToast('ไม่สามารถลบประวัติได้', 'error');
-      }
-    }
-
-    /************************************************
-     * Event Listeners
-     ************************************************/
-    $('subjectSelect').addEventListener(
-      'change',
-      loadAssignments
-    );
-
-    /************************************************
-     * เริ่มต้นระบบ
-     ************************************************/
-    init();
-  </script>
 </body>
 </html>
